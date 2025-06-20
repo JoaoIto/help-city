@@ -145,7 +145,7 @@ export default function AgentePage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Risco Alto/Crítico</p>
-                                    <p className="text-3xl font-bold text-red-600">{denuncias.filter(d => d.risco === 'crítico').length}</p>
+                                    <p className="text-3xl font-bold text-red-600">{denuncias.filter(d => d.risco === 'critico').length}</p>
                                 </div>
                                 <AlertTriangle className="h-8 w-8 text-red-600" />
                             </div>
@@ -247,7 +247,7 @@ export default function AgentePage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="todos">Todos os Riscos</SelectItem>
-                                                <SelectItem value="crítico">Crítico</SelectItem>
+                                                <SelectItem value="critico">Crítico</SelectItem>
                                                 <SelectItem value="alto">Alto</SelectItem>
                                                 <SelectItem value="medio">Médio</SelectItem>
                                                 <SelectItem value="baixo">Baixo</SelectItem>
