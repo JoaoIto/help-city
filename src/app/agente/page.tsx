@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import {useEffect, useState} from "react"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
@@ -8,59 +8,28 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { ArrowLeft, MapPin, TrendingUp, AlertTriangle, Shield, Users, Brain, Filter } from "lucide-react"
 import Link from "next/link"
-
-// Dados simulados
-const denuncias = [
-    {
-        id: 1,
-        tipo: "violencia",
-        descricao: "Grupo suspeito em atividade noturna",
-        endereco: "Asa Norte, próximo ao Conjunto Nacional",
-        latitude: -15.7942,
-        longitude: -47.8822,
-        risco: "alto",
-        timestamp: "2024-01-15 22:30",
-        status: "pendente",
-    },
-    {
-        id: 2,
-        tipo: "drogas",
-        descricao: "Movimentação suspeita de tráfico",
-        endereco: "Ceilândia Norte, QNM 15",
-        latitude: -15.8267,
-        longitude: -48.1075,
-        risco: "muito-alto",
-        timestamp: "2024-01-15 21:15",
-        status: "em-analise",
-    },
-    {
-        id: 3,
-        tipo: "iluminacao",
-        descricao: "Área escura propícia a assaltos",
-        endereco: "Asa Sul, próximo ao Parque da Cidade",
-        latitude: -15.7801,
-        longitude: -47.8869,
-        risco: "medio",
-        timestamp: "2024-01-15 20:45",
-        status: "resolvido",
-    },
-]
-
-const pontosQuentes = [
-    { nome: "Ceilândia Norte", ocorrencias: 45, risco: "muito-alto", lat: -15.8267, lng: -48.1075 },
-    { nome: "Samambaia Sul", ocorrencias: 38, risco: "alto", lat: -15.8758, lng: -48.0975 },
-    { nome: "Planaltina", ocorrencias: 32, risco: "alto", lat: -15.6178, lng: -47.6542 },
-    { nome: "Asa Norte", ocorrencias: 28, risco: "medio", lat: -15.7942, lng: -47.8822 },
-    { nome: "Taguatinga", ocorrencias: 25, risco: "medio", lat: -15.8325, lng: -48.0578 },
-]
+import {useDenuncias} from "@/hooks/useDenuncias";
+import {IDenuncia, Severity, StatusDenuncia} from "@/models/IDenuncia";
+import {useRouter} from "next/navigation";
 
 export default function AgentePage() {
-    const [filtroRisco, setFiltroRisco] = useState("todos")
-    const [filtroStatus, setFiltroStatus] = useState("todos")
+    const router = useRouter()
+    const [filtroRisco, setFiltroRisco] = useState<Severity | "todos">("todos");
+    const [filtroStatus, setFiltroStatus] = useState<StatusDenuncia | "todos">("todos");
+    const { loading, error, getAll, getByFilter } = useDenuncias();
+    const [denuncias, setDenuncias] = useState<IDenuncia[]>([]);
+
+    useEffect(() => {
+        async function load() {
+            const data = await getAll();
+            setDenuncias(data);
+        }
+        load();
+    }, [getAll]);
 
     const getRiscoColor = (risco: string) => {
         switch (risco) {
-            case "muito-alto":
+            case "critico":
                 return "bg-red-600 text-white"
             case "alto":
                 return "bg-orange-500 text-white"
@@ -86,11 +55,49 @@ export default function AgentePage() {
         }
     }
 
-    const denunciasFiltradas = denuncias.filter((denuncia) => {
-        const filtroRiscoOk = filtroRisco === "todos" || denuncia.risco === filtroRisco
-        const filtroStatusOk = filtroStatus === "todos" || denuncia.status === filtroStatus
-        return filtroRiscoOk && filtroStatusOk
-    })
+    const denunciasFiltradas = denuncias.filter((d) => {
+        const okRisco = filtroRisco === "todos" || d.risco === filtroRisco;
+        const okStatus = filtroStatus === "todos" || d.status === filtroStatus;
+        return okRisco && okStatus;
+    });
+
+    // 1) Agrupa denúncias por região (endereço) e calcula stats
+    const statsByRegion = denuncias.reduce((acc, d) => {
+        // usa só até a vírgula do endereço (ex: "Asa Norte, próximo ...")
+        const region = d.endereco?.split(",")[0].trim() || "Sem região";
+        if (!acc[region]) {
+            acc[region] = {
+                region,
+                count: 0,
+                riscos: [] as (Severity | undefined)[]
+            };
+        }
+        acc[region].count++;
+        acc[region].riscos.push(d.risco);
+        return acc;
+    }, {} as Record<string, { region: string; count: number; riscos: (Severity | undefined)[] }>);
+
+    // 2) Separa por quantidade de ocorrências definindo críticalidade
+    function inferRiscoByCount(count: number): Severity {
+        if (count >= 50) return "critico";
+        if (count >= 30) return "alto";
+        if (count >= 10) return "medio";
+        return "baixo";
+    }
+
+    // 3) Converte para array e ordena pelas maiores ocorrências
+    const pontosQuentes = Object.values(statsByRegion)
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5)
+        .map((stat) => ({
+            nome: stat.region,
+            ocorrencias: stat.count,
+            risco: inferRiscoByCount(stat.count),
+        }));
+
+    const routerEditDenuncia = (id: string) => {
+        router.push(`/agente/denuncia/${id}`)
+    }
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -125,7 +132,7 @@ export default function AgentePage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Total de Denúncias</p>
-                                    <p className="text-3xl font-bold text-gray-900">2,847</p>
+                                    <p className="text-3xl font-bold text-gray-900">{denuncias.length}</p>
                                 </div>
                                 <Users className="h-8 w-8 text-blue-600" />
                             </div>
@@ -138,7 +145,7 @@ export default function AgentePage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Risco Alto/Crítico</p>
-                                    <p className="text-3xl font-bold text-red-600">156</p>
+                                    <p className="text-3xl font-bold text-red-600">{denuncias.filter(d => d.risco === 'crítico').length}</p>
                                 </div>
                                 <AlertTriangle className="h-8 w-8 text-red-600" />
                             </div>
@@ -190,60 +197,8 @@ export default function AgentePage() {
                                 <CardDescription>Visualização dos pontos críticos identificados pela IA preditiva</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                {/* Simulação de Mapa */}
-                                <div className="bg-gradient-to-br from-blue-100 to-green-100 rounded-lg p-8 h-96 relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-[url('/placeholder.svg?height=400&width=800')] bg-cover bg-center opacity-20"></div>
-
-                                    {/* Pontos no Mapa */}
-                                    {pontosQuentes.map((ponto, index) => (
-                                        <div
-                                            key={index}
-                                            className={`absolute w-4 h-4 rounded-full ${
-                                                ponto.risco === "muito-alto"
-                                                    ? "bg-red-600"
-                                                    : ponto.risco === "alto"
-                                                        ? "bg-orange-500"
-                                                        : "bg-yellow-500"
-                                            } animate-pulse cursor-pointer`}
-                                            style={{
-                                                left: `${20 + index * 15}%`,
-                                                top: `${30 + (index % 3) * 20}%`,
-                                            }}
-                                            title={`${ponto.nome} - ${ponto.ocorrencias} ocorrências`}
-                                        >
-                                            <div
-                                                className={`absolute -top-8 -left-8 px-2 py-1 rounded text-xs font-medium ${
-                                                    ponto.risco === "muito-alto"
-                                                        ? "bg-red-600 text-white"
-                                                        : ponto.risco === "alto"
-                                                            ? "bg-orange-500 text-white"
-                                                            : "bg-yellow-500 text-black"
-                                                }`}
-                                            >
-                                                {ponto.nome}
-                                            </div>
-                                        </div>
-                                    ))}
-
-                                    <div className="absolute bottom-4 left-4 bg-white p-4 rounded-lg shadow-md">
-                                        <h4 className="font-semibold mb-2">Legenda</h4>
-                                        <div className="space-y-1 text-sm">
-                                            <div className="flex items-center space-x-2">
-                                                <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-                                                <span>Risco Muito Alto</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
-                                                <span>Risco Alto</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                                                <span>Risco Médio</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
+                                <Button className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">Vizualisar Mapa</Button>
+                                </CardContent>
                         </Card>
 
                         {/* Pontos Quentes */}
@@ -292,7 +247,7 @@ export default function AgentePage() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="todos">Todos os Riscos</SelectItem>
-                                                <SelectItem value="muito-alto">Muito Alto</SelectItem>
+                                                <SelectItem value="crítico">Crítico</SelectItem>
                                                 <SelectItem value="alto">Alto</SelectItem>
                                                 <SelectItem value="medio">Médio</SelectItem>
                                                 <SelectItem value="baixo">Baixo</SelectItem>
@@ -320,13 +275,13 @@ export default function AgentePage() {
                         {/* Lista de Denúncias */}
                         <div className="space-y-4">
                             {denunciasFiltradas.map((denuncia) => (
-                                <Card key={denuncia.id}>
+                                <Card key={denuncia._id}>
                                     <CardContent className="p-6">
                                         <div className="flex items-start justify-between">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-2">
-                                                    <Badge className={getRiscoColor(denuncia.risco)}>
-                                                        {denuncia.risco.replace("-", " ").toUpperCase()}
+                                                    <Badge className={getRiscoColor(denuncia.risco ? denuncia.risco : '')}>
+                                                        {denuncia.risco ? (denuncia.risco.replace("-", " ").toUpperCase()) : '' }
                                                     </Badge>
                                                     <Badge variant="outline" className={getStatusColor(denuncia.status)}>
                                                         {denuncia.status.replace("-", " ").toUpperCase()}
@@ -339,16 +294,35 @@ export default function AgentePage() {
                                                         <span>{denuncia.endereco}</span>
                                                     </div>
                                                     <span>•</span>
-                                                    <span>{denuncia.timestamp}</span>
+                                                    <span>{denuncia.createdAt}</span>
                                                 </div>
                                             </div>
-                                            <Button className="bg-blue-600 text-white" variant="outline" size="sm">
+                                            <Button className="cursor-pointer bg-blue-600 text-white" onClick={() => {routerEditDenuncia(denuncia._id)}} variant="outline" size="sm">
                                                 Ver Detalhes
                                             </Button>
                                         </div>
                                     </CardContent>
                                 </Card>
                             ))}
+                        </div>
+                        <div className="space-y-4 flex items-center justify-center text-center">
+                            {!denunciasFiltradas.length && (
+                                <div className="space-y-4 flex flex-col items-center justify-center text-center">
+    <span className="text-red-600 text-4xl">
+      Não há denúncias desse tipo!
+    </span>
+                                    <Button
+                                        className="cursor-pointer border-2 bg-transparent border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white text-2xl"
+                                        variant="outline"
+                                        onClick={() => {
+                                            setFiltroRisco("todos");
+                                            setFiltroStatus("todos");
+                                        }}
+                                    >
+                                        Limpar filtros
+                                    </Button>
+                                </div>
+                            )}
                         </div>
                     </TabsContent>
 
