@@ -25,6 +25,7 @@ export async function POST(request: Request) {
         const now = new Date();
         const insertResult = await db.collection("denuncias").insertOne({
             ...denuncia,
+            status: 'pendente',
             createdAt: now,
         });
 
