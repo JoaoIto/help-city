@@ -13,10 +13,11 @@ import { Badge } from "@/app/components/ui/badge"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { ArrowLeft, Camera, MapPin, Upload, CheckCircle, AlertTriangle } from "lucide-react"
 import Link from "next/link"
+import {DenunciaInput, DenunciaSchema} from "@/schemas/DenunciaSchema";
 
 export default function CidadaoPage() {
-    const [formData, setFormData] = useState({
-        tipo: "",
+    const [formData, setFormData] = useState<DenunciaInput & { imagem: File | null }>({
+        tipo: "outros",
         descricao: "",
         endereco: "",
         latitude: "",
@@ -62,15 +63,53 @@ export default function CidadaoPage() {
         }
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsSubmitting(true)
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
 
-        // Simular envio
-        await new Promise((resolve) => setTimeout(resolve, 2000))
+        // 1. Converter File em Base64
+        let base64: string | undefined;
+        if (formData.imagem) {
+            base64 = await new Promise<string>((resolve, reject) => {
+                const fr = new FileReader();
+                fr.onload = () => resolve(fr.result as string);
+                fr.onerror = reject;
+                fr.readAsDataURL(formData.imagem!);
+            });
+        }
 
-        setSubmitted(true)
-        setIsSubmitting(false)
+        // 2. Montar o payload conforme o schema
+        const payload: DenunciaInput = {
+            tipo: formData.tipo,
+            descricao: formData.descricao,
+            endereco: formData.endereco || undefined,
+            latitude: formData.latitude,
+            longitude: formData.longitude,
+            imageBase64: base64,
+        };
+
+        // 3. Validar com Zod
+        const result = DenunciaSchema.safeParse(payload);
+        if (!result.success) {
+            console.error("Erros de validação:", result.error.format());
+            // aqui você pode setar um estado de erros e mostrar nas inputs
+            return;
+        }
+
+        // 4. Enviar ao seu endpoint
+        setIsSubmitting(true);
+        const resp = await fetch("/api/denuncia", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        });
+        setIsSubmitting(false);
+
+        if (resp.ok) {
+            setSubmitted(true);
+        } else {
+            // trate erro de rede ou validação server-side
+            console.error("Erro no envio:", await resp.text());
+        }
     }
 
     if (submitted) {
@@ -92,7 +131,7 @@ export default function CidadaoPage() {
                             </p>
                         </div>
                         <Link href="/">
-                            <Button className="w-full">Voltar ao Início</Button>
+                            <Button className="w-full bg-blue-600 text-white cursor-pointer">Voltar ao Início</Button>
                         </Link>
                     </CardContent>
                 </Card>
@@ -135,7 +174,12 @@ export default function CidadaoPage() {
                                 <Label htmlFor="tipo">Tipo de Ocorrência *</Label>
                                 <Select
                                     value={formData.tipo}
-                                    onValueChange={(value) => setFormData((prev) => ({ ...prev, tipo: value }))}
+                                    onValueChange={(value: DenunciaInput["tipo"]) =>
+                                        setFormData((prev) => ({
+                                            ...prev,
+                                            tipo: value,
+                                        }))
+                                    }
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Selecione o tipo de situação" />
