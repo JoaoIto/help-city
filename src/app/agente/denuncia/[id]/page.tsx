@@ -31,7 +31,7 @@ import {
 import { useDenuncias } from "@/hooks/useDenuncias"
 import {IDenuncia} from "@/models/IDenuncia";
 
-type ReportStatus = "pendente" | "em-analise" | "verificado" | "resolvido" | "falso-positivo"
+type ReportStatus = "pendente" | "em-analise" | "verificado" | "resolvido"
 
 export default function DenunciaDetailsPage() {
     const params = useParams()
@@ -78,15 +78,12 @@ export default function DenunciaDetailsPage() {
         { value: "em-analise", label: "Em Análise", color: "bg-blue-500" },
         { value: "verificado", label: "Verificado", color: "bg-purple-500" },
         { value: "resolvido", label: "Resolvido", color: "bg-green-500" },
-        { value: "falso-positivo", label: "Falso Positivo", color: "bg-red-500" },
     ]
 
     const riskColors = {
-        "muito-baixo": "bg-green-100 text-green-800",
         baixo: "bg-green-200 text-green-900",
         medio: "bg-yellow-200 text-yellow-900",
         alto: "bg-orange-200 text-orange-900",
-        "muito-alto": "bg-red-200 text-red-900",
         critico: "bg-red-500 text-white",
     }
 
@@ -133,12 +130,6 @@ export default function DenunciaDetailsPage() {
         } finally {
             setIsUpdating(false)
         }
-    }
-
-    const handleDispatchUnit = () => {
-        if (!denuncia) return
-        // Implementar lógica de despacho
-        alert(`Unidade despachada para ${denuncia.location.address}!`)
     }
 
     const handleContactReporter = () => {
@@ -268,25 +259,17 @@ export default function DenunciaDetailsPage() {
                                     <p className="mt-1 text-gray-900 leading-relaxed">{denuncia.descricao}</p>
                                 </div>
 
-                                {/*<div>*/}
-                                {/*    <Label className="text-sm font-medium text-gray-600">Localização</Label>*/}
-                                {/*    <div className="mt-1 space-y-2">*/}
-                                {/*        <div className="flex items-center space-x-2">*/}
-                                {/*            <MapPin className="h-4 w-4 text-gray-500" />*/}
-                                {/*            <span>{denuncia.location.address}</span>*/}
-                                {/*        </div>*/}
-                                {/*        {denuncia.location.neighborhood && (*/}
-                                {/*            <p className="text-sm text-gray-600">Bairro: {denuncia.location.neighborhood}</p>*/}
-                                {/*        )}*/}
-                                {/*        {denuncia.location.landmark && (*/}
-                                {/*            <p className="text-sm text-blue-600">📍 {denuncia.location.landmark}</p>*/}
-                                {/*        )}*/}
-                                {/*        <div className="text-xs text-gray-500">*/}
-                                {/*            Coordenadas: {denuncia.location.coordinates.latitude.toFixed(6)},{" "}*/}
-                                {/*            {denuncia.location.coordinates.longitude.toFixed(6)}*/}
-                                {/*        </div>*/}
-                                {/*    </div>*/}
-                                {/*</div>*/}
+                                <div>
+                                    <Label className="text-sm font-medium text-gray-600">Localização</Label>
+                                    <div className="mt-1 space-y-2">
+                                        <div className="flex items-center space-x-2">
+                                            <MapPin className="h-4 w-4 text-gray-500" />
+                                            <Label className="text-sm font-medium text-gray-600">Coordenadas: </Label>
+                                            <span>Latitude: {denuncia.latitude}</span>
+                                            <span>Longitude: {denuncia.longitude}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
@@ -388,7 +371,7 @@ export default function DenunciaDetailsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <Button className="cursor-pointer w-full text-white bg-red-600 hover:bg-red-700" onClick={handleDispatchUnit}>
+                                <Button className="cursor-pointer w-full text-white bg-red-600 hover:bg-red-700">
                                     <Navigation className="h-4 w-4 mr-2" />
                                     Despachar Unidade
                                 </Button>

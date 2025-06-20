@@ -20,9 +20,9 @@ export interface EvaluateDenunciaRequest {
     location: ILocation
 }
 
-export type Severity = "baixo" | "medio" | "alto" | "crítico";
+export type Severity = "baixo" | "medio" | "alto" | "critico";
 
-export type StatusDenuncia = "pendente" | "em-analise" | "resolvido";
+export type StatusDenuncia = "pendente" | "em-analise" | "verificado" | "resolvido";
 
 export interface IDenuncia {
     _id: string;
@@ -33,7 +33,16 @@ export interface IDenuncia {
     longitude: string;
     imageBase64?: string;
     createdAt: string;
+    updatedAt: string;
+    source: string;
+    reporterInfo: IReporter;
     // campos gerenciados pela API
     status: StatusDenuncia;
     risco?: Severity;
+}
+
+export interface IReporter {
+    name?: string;
+    contactPhone?: string;
+    email?: string;
 }
