@@ -238,7 +238,7 @@ export default function DenunciaDetailsPage() {
                                         <AlertTriangle className="h-5 w-5 text-orange-600" />
                                         <span>Informações da Ocorrência</span>
                                     </CardTitle>
-                                    <Button variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
+                                    <Button className="cursor-pointer" variant="outline" size="sm" onClick={() => setIsEditing(!isEditing)}>
                                         <Edit3 className="h-4 w-4 mr-2" />
                                         {isEditing ? "Cancelar" : "Editar"}
                                     </Button>
@@ -388,19 +388,19 @@ export default function DenunciaDetailsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <Button className="w-full text-white bg-red-600 hover:bg-red-700" onClick={handleDispatchUnit}>
+                                <Button className="cursor-pointer w-full text-white bg-red-600 hover:bg-red-700" onClick={handleDispatchUnit}>
                                     <Navigation className="h-4 w-4 mr-2" />
                                     Despachar Unidade
                                 </Button>
-                                <Button variant="outline" className="w-full bg-blue-600 text-white" onClick={handleContactReporter}>
+                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white" onClick={handleContactReporter}>
                                     <Phone className="h-4 w-4 mr-2" />
                                     Contatar Denunciante
                                 </Button>
-                                <Button variant="outline" className="w-full bg-blue-600 text-white" onClick={handleViewOnMap}>
+                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white" onClick={handleViewOnMap}>
                                     <MapPin className="h-4 w-4 mr-2" />
                                     Ver no Mapa
                                 </Button>
-                                <Button variant="outline" className="w-full bg-blue-600 text-white">
+                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white">
                                     <FileText className="h-4 w-4 mr-2" />
                                     Gerar Relatório
                                 </Button>
@@ -454,7 +454,7 @@ export default function DenunciaDetailsPage() {
                                     />
                                 </div>
 
-                                <Button className="w-full bg-blue-600 text-white" onClick={handleSaveChanges} disabled={isUpdating}>
+                                <Button className="w-full cursor-pointer bg-blue-600 text-white" onClick={handleSaveChanges} disabled={isUpdating}>
                                     {isUpdating ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
