@@ -32,10 +32,11 @@ export interface IDenuncia {
     latitude: string;
     longitude: string;
     imageBase64?: string;
-    createdAt: string;
-    updatedAt: string;
+    createdAt: string | Date;
+    updatedAt: string | Date;
     source: string;
-    reporterInfo: IReporter;
+    assignedAgent?: IAssignedAgent;
+    reporterInfo?: IReporter;
     // campos gerenciados pela API
     status: StatusDenuncia;
     risco?: Severity;
@@ -45,4 +46,10 @@ export interface IReporter {
     name?: string;
     contactPhone?: string;
     email?: string;
+}
+
+export interface IAssignedAgent {
+    id: string;
+    name: string;
+    badge: string;
 }
