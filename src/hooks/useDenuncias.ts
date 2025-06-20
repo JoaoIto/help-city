@@ -64,12 +64,12 @@ export function useDenuncias(baseUrl = "/api/denuncia") {
         setLoading(true)
         setError(null)
         try {
-            const response = await fetch(`/api/denuncia/status`, {
+            const response = await fetch(`/api/denuncia/${id}/status`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
                 },
-                body: JSON.stringify({ id, status, notes }),
+                body: JSON.stringify({ status, notes }),
             })
 
             if (!response.ok) throw new Error("Erro ao atualizar status")
