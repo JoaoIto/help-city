@@ -14,7 +14,7 @@ import {useRouter} from "next/navigation";
 
 export default function AgentePage() {
     const router = useRouter()
-    const [filtroRisco, setFiltroRisco] = useState<Severity | "todos">("todos");
+    const [filtroRisco, setFiltroRisco] = useState<Severity>("todos");
     const [filtroStatus, setFiltroStatus] = useState<StatusDenuncia | "todos">("todos");
     const { getAll } = useDenuncias();
     const [denuncias, setDenuncias] = useState<IDenuncia[]>([]);
@@ -56,7 +56,7 @@ export default function AgentePage() {
     }
 
     const denunciasFiltradas = denuncias.filter((d) => {
-        const okRisco = filtroRisco === "todos" || d.risco === filtroRisco;
+        const okRisco = filtroRisco === "baixo" || d.risco === filtroRisco;
         const okStatus = filtroStatus === "todos" || d.status === filtroStatus;
         return okRisco && okStatus;
     });
@@ -241,7 +241,9 @@ export default function AgentePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label htmlFor="filtro-risco">Nível de Risco</label>
-                                        <Select value={filtroRisco} onValueChange={setFiltroRisco}>
+                                        <Select value={filtroRisco} onValueChange={(value: string) =>
+                                            setFiltroRisco(value as Severity)
+                                        }>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -256,7 +258,9 @@ export default function AgentePage() {
                                     </div>
                                     <div>
                                         <label htmlFor="filtro-status">Status</label>
-                                        <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+                                        <Select value={filtroStatus} onValueChange={(value: string) =>
+                                            setFiltroStatus(value as StatusDenuncia)
+                                        }>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -294,7 +298,7 @@ export default function AgentePage() {
                                                         <span>{denuncia.endereco}</span>
                                                     </div>
                                                     <span>•</span>
-                                                    <span>{denuncia.createdAt}</span>
+                                                    <span>{denuncia.createdAt.toString()}</span>
                                                 </div>
                                             </div>
                                             <Button className="cursor-pointer bg-blue-600 text-white" onClick={() => {routerEditDenuncia(denuncia._id)}} variant="outline" size="sm">

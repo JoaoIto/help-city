@@ -20,7 +20,7 @@ export interface EvaluateDenunciaRequest {
     location: ILocation
 }
 
-export type Severity = "baixo" | "medio" | "alto" | "critico";
+export type Severity = "todos" | "baixo" | "medio" | "alto" | "critico";
 
 export type StatusDenuncia = "pendente" | "em-analise" | "verificado" | "resolvido";
 

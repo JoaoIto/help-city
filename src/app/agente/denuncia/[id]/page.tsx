@@ -26,7 +26,7 @@ import {
     Loader2,
 } from "lucide-react"
 import { useDenuncias } from "@/hooks/useDenuncias"
-import {IDenuncia} from "@/models/IDenuncia";
+import {IDenuncia, Severity} from "@/models/IDenuncia";
 
 type ReportStatus = "pendente" | "em-analise" | "verificado" | "resolvido"
 
@@ -77,7 +77,8 @@ export default function DenunciaDetailsPage() {
         { value: "resolvido", label: "Resolvido", color: "bg-green-500" },
     ]
 
-    const riskColors = {
+    const riskColors: Record<Severity, string> = {
+        todos: "bg-blue-200 text-blue-900",
         baixo: "bg-green-200 text-green-900",
         medio: "bg-yellow-200 text-yellow-900",
         alto: "bg-orange-200 text-orange-900",
