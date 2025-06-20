@@ -3,6 +3,7 @@ import {RiskType, Severity} from "@/models/IRisk";
 interface ILocation {
     latitude: string;
     longitude: string;
+    addressReference: string;
 }
 
 export interface EvaluateDenunciaResponse {
@@ -12,6 +13,7 @@ export interface EvaluateDenunciaResponse {
 }
 
 export interface EvaluateDenunciaRequest {
+    tipo: string;
     description: string;
     // se for upload via multipart/form-data, use FormData no cliente
     imageBase64: string;
