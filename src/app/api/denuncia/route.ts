@@ -2,6 +2,10 @@ import {NextResponse} from "next/server";
 import clientPromise from "@/lib/mongodb";
 import {DenunciaSchema} from "@/schemas/DenunciaSchema";
 
+type FilterValue =
+    | string
+    | { $regex: string; $options: "i" };
+
 export async function POST(request: Request) {
     // 1) lê o corpo
     const body = await request.json();
@@ -58,11 +62,13 @@ export async function GET(request: Request) {
     }
 
     // 2) Monta filtro apenas com campos permitidos
-    const filter: Record<string, any> = {};
-    for (const [key, val] of Object.entries(params)) {
+    const filter: Partial<Record<
+        "tipo" | "descricao" | "endereco" | "latitude" | "longitude",
+        FilterValue
+    >> = {};
+    for (const [key, val] of Object.entries(params) as [string, string][]) {
         if (!ALLOWED.includes(key)) continue;
-        // substring match só para texto
-        filter[key] =
+        filter[key as keyof typeof filter] =
             key === "descricao" || key === "endereco"
                 ? { $regex: val, $options: "i" }
                 : val;

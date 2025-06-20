@@ -16,14 +16,11 @@ import {
     Calendar,
     Clock,
     User,
-    Camera,
     AlertTriangle,
     Edit3,
     Save,
     Phone,
-    Mail,
     Shield,
-    Brain,
     FileText,
     Navigation,
     Loader2,
@@ -44,7 +41,7 @@ export default function DenunciaDetailsPage() {
     const [actionNotes, setActionNotes] = useState("")
     const [assignedAgent, setAssignedAgent] = useState("")
     const [isUpdating, setIsUpdating] = useState(false)
-    const [selectedImage, setSelectedImage] = useState(0)
+    // const [selectedImage, setSelectedImage] = useState(0)
 
     const denunciaId = params.id as string
 

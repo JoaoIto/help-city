@@ -14,6 +14,7 @@ import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { ArrowLeft, Camera, MapPin, Upload, CheckCircle, AlertTriangle } from "lucide-react"
 import Link from "next/link"
 import {DenunciaInput, DenunciaSchema} from "@/schemas/DenunciaSchema";
+import {useDenuncias} from "@/hooks/useDenuncias";
 
 export default function CidadaoPage() {
     const [formData, setFormData] = useState<DenunciaInput & { imagem: File | null }>({
@@ -27,6 +28,7 @@ export default function CidadaoPage() {
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [submitted, setSubmitted] = useState(false)
     const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number } | null>(null)
+    const { create } = useDenuncias()
 
     const tiposOcorrencia = [
         { value: "violencia", label: "Violência Urbana", color: "bg-red-500" },
@@ -64,20 +66,19 @@ export default function CidadaoPage() {
     }
 
     async function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-
-        // 1. Converter File em Base64
-        let base64: string | undefined;
+        e.preventDefault()
+        setIsSubmitting(true)
+        // converte File para base64
+        let base64: string | undefined
         if (formData.imagem) {
-            base64 = await new Promise<string>((resolve, reject) => {
-                const fr = new FileReader();
-                fr.onload = () => resolve(fr.result as string);
-                fr.onerror = reject;
-                fr.readAsDataURL(formData.imagem!);
-            });
+            base64 = await new Promise<string>((res, rej) => {
+                const fr = new FileReader()
+                fr.onload = () => res(fr.result as string)
+                fr.onerror = rej
+                fr.readAsDataURL(formData.imagem!)
+            })
         }
 
-        // 2. Montar o payload conforme o schema
         const payload: DenunciaInput = {
             tipo: formData.tipo,
             descricao: formData.descricao,
@@ -85,30 +86,17 @@ export default function CidadaoPage() {
             latitude: formData.latitude,
             longitude: formData.longitude,
             imageBase64: base64,
-        };
-
-        // 3. Validar com Zod
-        const result = DenunciaSchema.safeParse(payload);
-        if (!result.success) {
-            console.error("Erros de validação:", result.error.format());
-            // aqui você pode setar um estado de erros e mostrar nas inputs
-            return;
         }
 
-        // 4. Enviar ao seu endpoint
-        setIsSubmitting(true);
-        const resp = await fetch("/api/denuncia", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        });
-        setIsSubmitting(false);
+        // client-side Zod
+        const ok = DenunciaSchema.safeParse(payload)
+        if (!ok.success) return console.error(ok.error.format())
 
-        if (resp.ok) {
-            setSubmitted(true);
-        } else {
-            // trate erro de rede ou validação server-side
-            console.error("Erro no envio:", await resp.text());
+        try {
+            await create(payload)
+            setSubmitted(true)
+        } catch (err) {
+            console.error(err)
         }
     }
 

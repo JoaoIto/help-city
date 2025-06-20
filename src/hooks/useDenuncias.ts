@@ -83,6 +83,7 @@ export function useDenuncias(baseUrl = "/api/denuncia") {
 
     return {
         loading,
+        create,
         error,
         getAll,
         getByFilter,

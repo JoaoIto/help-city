@@ -18,6 +18,7 @@ if (!global._mongoClientPromise) {
     client = new MongoClient(uri, options);
     global._mongoClientPromise = client.connect();
 }
+// eslint-disable-next-line prefer-const
 clientPromise = global._mongoClientPromise!;
 
 export default clientPromise;

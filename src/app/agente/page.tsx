@@ -16,7 +16,7 @@ export default function AgentePage() {
     const router = useRouter()
     const [filtroRisco, setFiltroRisco] = useState<Severity | "todos">("todos");
     const [filtroStatus, setFiltroStatus] = useState<StatusDenuncia | "todos">("todos");
-    const { loading, error, getAll, getByFilter } = useDenuncias();
+    const { getAll } = useDenuncias();
     const [denuncias, setDenuncias] = useState<IDenuncia[]>([]);
 
     useEffect(() => {
