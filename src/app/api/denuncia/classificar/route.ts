@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from "next";
+import type { NextApiRequest } from "next";
 import { EvaluateDenunciaRequest, EvaluateDenunciaResponse } from "@/models/IDenuncia";
 import {classifyImage, decideTypeByImage} from "@/services/classifyImage";
 import {identifyType} from "@/services/identifyType";
@@ -7,8 +7,7 @@ import {NextResponse} from "next/server";
 const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN!;
 
 export async function POST(
-    req: NextApiRequest,
-    res: NextApiResponse<EvaluateDenunciaResponse | { error: string }>
+    req: NextApiRequest
 ) {
     const { description, location, imageBase64 } = req.body as EvaluateDenunciaRequest;
     if (!description || !location) {
@@ -31,7 +30,7 @@ export async function POST(
 
     // 2) Decide severity
     const severity = negative > 0.8
-        ? "Crítico"
+        ? "critico"
         : negative > 0.5
             ? "Alto"
             : negative > 0.2
