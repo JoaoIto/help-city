@@ -6,10 +6,3 @@ export enum RiskType {
     AreaDegradada= "Área Degradada",
     Outros       = "Outros",
 }
-
-export enum Severity {
-    Baixo  = "Baixo",
-    Medio  = "Médio",
-    Alto   = "Alto",
-    Critico= "Crítico",
-}
