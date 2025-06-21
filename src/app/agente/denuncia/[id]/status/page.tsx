@@ -23,7 +23,6 @@ import {
     Phone,
     Mail,
     Shield,
-    Brain,
     FileText,
     Navigation,
     Loader2,
@@ -44,7 +43,6 @@ export default function DenunciaDetailsPage() {
     const [actionNotes, setActionNotes] = useState("")
     const [assignedAgent, setAssignedAgent] = useState("")
     const [isUpdating, setIsUpdating] = useState(false)
-    const [selectedImage, setSelectedImage] = useState(0)
 
     const denunciaId = params.id as string
 
@@ -80,7 +78,7 @@ export default function DenunciaDetailsPage() {
         { value: "resolvido", label: "Resolvido", color: "bg-green-500" },
     ]
 
-    const riskColors: Severity = {
+    const riskColors: Record<Severity, string> = {
         todos: "bg-gray-200 text-gray-900",
         baixo: "bg-green-200 text-green-900",
         medio: "bg-yellow-200 text-yellow-900",
@@ -319,36 +317,27 @@ export default function DenunciaDetailsPage() {
                             </CardContent>
                         </Card>
                         {/* Imagens */}
-                        {/*{denuncia.images && denuncia.images.length > 0 && (*/}
-                        {/*    <Card>*/}
-                        {/*        <CardHeader>*/}
-                        {/*            <CardTitle className="flex items-center space-x-2">*/}
-                        {/*                <Camera className="h-5 w-5" />*/}
-                        {/*                <span>Evidências Visuais</span>*/}
-                        {/*            </CardTitle>*/}
-                        {/*        </CardHeader>*/}
-                        {/*        <CardContent>*/}
-                        {/*            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">*/}
-                        {/*                {denuncia.images.map((image, index) => (*/}
-                        {/*                    <div key={index} className="space-y-2">*/}
-                        {/*                        <img*/}
-                        {/*                            src={image.url || "/placeholder.svg?height=300&width=400"}*/}
-                        {/*                            alt={`Evidência ${index + 1}`}*/}
-                        {/*                            className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80"*/}
-                        {/*                            onClick={() => setSelectedImage(index)}*/}
-                        {/*                        />*/}
-                        {/*                        <div className="text-xs text-gray-500">*/}
-                        {/*                            <p>Imagem {index + 1}</p>*/}
-                        {/*                            {image.metadata && (*/}
-                        {/*                                <p>Capturada em: {new Date(image.metadata.capturedAt).toLocaleString("pt-BR")}</p>*/}
-                        {/*                            )}*/}
-                        {/*                        </div>*/}
-                        {/*                    </div>*/}
-                        {/*                ))}*/}
-                        {/*            </div>*/}
-                        {/*        </CardContent>*/}
-                        {/*    </Card>*/}
-                        {/*)}*/}
+                        {/* Imagens de evidência */}
+                        {denuncia.imageBase64 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="flex items-center space-x-2">
+                                        <Camera className="h-5 w-5" />
+                                        <span>Evidência Visual</span>
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <img
+                                            src={denuncia.imageBase64}
+                                            alt="Evidência da denúncia"
+                                            className="w-full h-48 object-cover rounded-lg border cursor-pointer hover:opacity-80"
+                                        />
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
                     </div>
 
                     {/* Coluna Lateral */}
