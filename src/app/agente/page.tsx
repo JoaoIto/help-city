@@ -1,6 +1,6 @@
 "use client"
 
-import {useEffect, useState} from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
@@ -8,26 +8,64 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/app/components/ui/ta
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { ArrowLeft, MapPin, TrendingUp, AlertTriangle, Shield, Users, Brain, Filter } from "lucide-react"
 import Link from "next/link"
-import {useDenuncias} from "@/hooks/useDenuncias";
-import {IDenuncia, Severity, StatusDenuncia} from "@/models/IDenuncia";
-import {useRouter} from "next/navigation";
+import { useDenuncias } from "@/hooks/useDenuncias"
+import type { IDenuncia, Severity, StatusDenuncia } from "@/models/IDenuncia"
+import { useRouter } from "next/navigation"
 import { Eye } from "lucide-react"
 import { Skeleton } from "../components/ui/skeleton"
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
+    CartesianGrid,
+    LineChart,
+    Line,
+} from "recharts"
+import type { IPredictiveData } from "@/models/IPredictiveData"
 
 export default function AgentePage() {
+    const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#6b7280"]
     const router = useRouter()
-    const [filtroRisco, setFiltroRisco] = useState<Severity>("todos");
-    const [filtroStatus, setFiltroStatus] = useState<StatusDenuncia | "todos">("todos");
-    const { getAll } = useDenuncias();
-    const [denuncias, setDenuncias] = useState<IDenuncia[]>([]);
+    const [filtroRisco, setFiltroRisco] = useState<Severity>("todos")
+    const [filtroStatus, setFiltroStatus] = useState<StatusDenuncia | "todos">("todos")
+    const { getAll } = useDenuncias()
+    const [denuncias, setDenuncias] = useState<IDenuncia[]>([])
+    const [predictiveData, setPredictiveData] = useState<IPredictiveData | null>(null)
+    const [loadingPredictive, setLoadingPredictive] = useState(true)
 
     useEffect(() => {
         async function load() {
-            const data = await getAll();
-            setDenuncias(data);
+            const data = await getAll()
+            setDenuncias(data)
         }
-        load();
-    }, [getAll]);
+        load()
+        loadPredictiveData()
+    }, [getAll])
+
+    async function loadPredictiveData() {
+        try {
+            const endDate = new Date()
+            const startDate = new Date()
+            startDate.setFullYear(endDate.getFullYear() - 1)
+
+            const res = await fetch(`/api/predictive?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`)
+            if (!res.ok) throw new Error("Falha ao buscar dados preditivos")
+
+            const data = await res.json()
+            setPredictiveData(data)
+        } catch (err) {
+            console.error("Erro ao carregar dados preditivos:", err)
+        } finally {
+            setLoadingPredictive(false)
+        }
+    }
 
     const getRiscoColor = (risco: string) => {
         switch (risco) {
@@ -58,33 +96,84 @@ export default function AgentePage() {
     }
 
     const denunciasFiltradas = denuncias.filter((d) => {
-        const okRisco  = filtroRisco === "todos" || d.risco  === filtroRisco;
-        const okStatus = filtroStatus === "todos"|| d.status === filtroStatus;
-        return okRisco && okStatus;
-    });
+        const okRisco = filtroRisco === "todos" || d.risco === filtroRisco
+        const okStatus = filtroStatus === "todos" || d.status === filtroStatus
+        return okRisco && okStatus
+    })
+
+    // Preparar dados para gráficos baseados nas denúncias locais
+    const riskDistribution = denuncias.reduce<Record<string, number>>((acc, d) => {
+        const risk = d.risco || "indefinido"
+        acc[risk] = (acc[risk] || 0) + 1
+        return acc
+    }, {})
+
+    const riskChartData = Object.entries(riskDistribution).map(([level, count]) => ({
+        level: level.charAt(0).toUpperCase() + level.slice(1),
+        count,
+    }))
+
+    // Distribuição por região
+    const regionDistribution = denuncias.reduce<Record<string, number>>((acc, d) => {
+        const region = d.endereco?.split(",")[0].trim() || "Sem região"
+        acc[region] = (acc[region] || 0) + 1
+        return acc
+    }, {})
+
+    const regionChartData = Object.entries(regionDistribution)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 8) // Top 8 regiões
+
+    // Distribuição por hora
+    const hourlyDistribution = denuncias.reduce<Record<number, number>>((acc, d) => {
+        const hour = new Date(d.createdAt).getHours()
+        acc[hour] = (acc[hour] || 0) + 1
+        return acc
+    }, {})
+
+    const hourlyChartData = Array.from({ length: 24 }, (_, hour) => ({
+        hour,
+        count: hourlyDistribution[hour] || 0,
+        label: `${hour}:00`,
+    }))
+
+    // Distribuição por status
+    const statusDistribution = denuncias.reduce<Record<string, number>>((acc, d) => {
+        const status = d.status || "indefinido"
+        acc[status] = (acc[status] || 0) + 1
+        return acc
+    }, {})
+
+    const statusChartData = Object.entries(statusDistribution).map(([status, count]) => ({
+        status: status.replace("-", " ").toUpperCase(),
+        count,
+    }))
 
     // 1) Agrupa denúncias por região (endereço) e calcula stats
-    const statsByRegion = denuncias.reduce((acc, d) => {
-        // usa só até a vírgula do endereço (ex: "Asa Norte, próximo ...")
-        const region = d.endereco?.split(",")[0].trim() || "Sem região";
-        if (!acc[region]) {
-            acc[region] = {
-                region,
-                count: 0,
-                riscos: [] as (Severity | undefined)[]
-            };
-        }
-        acc[region].count++;
-        acc[region].riscos.push(d.risco);
-        return acc;
-    }, {} as Record<string, { region: string; count: number; riscos: (Severity | undefined)[] }>);
+    const statsByRegion = denuncias.reduce(
+        (acc, d) => {
+            const region = d.endereco?.split(",")[0].trim() || "Sem região"
+            if (!acc[region]) {
+                acc[region] = {
+                    region,
+                    count: 0,
+                    riscos: [] as (Severity | undefined)[],
+                }
+            }
+            acc[region].count++
+            acc[region].riscos.push(d.risco)
+            return acc
+        },
+        {} as Record<string, { region: string; count: number; riscos: (Severity | undefined)[] }>,
+    )
 
     // 2) Separa por quantidade de ocorrências definindo críticalidade
     function inferRiscoByCount(count: number): Severity {
-        if (count >= 50) return "critico";
-        if (count >= 30) return "alto";
-        if (count >= 10) return "medio";
-        return "baixo";
+        if (count >= 50) return "critico"
+        if (count >= 30) return "alto"
+        if (count >= 10) return "medio"
+        return "baixo"
     }
 
     // 3) Converte para array e ordena pelas maiores ocorrências
@@ -95,62 +184,7 @@ export default function AgentePage() {
             nome: stat.region,
             ocorrencias: stat.count,
             risco: inferRiscoByCount(stat.count),
-        }));
-
-    const [predictiveData, setPredictiveData] = useState<IPredictiveData | null>(null);
-    const [loadingPredictive, setLoadingPredictive] = useState(true);
-
-    useEffect(() => {
-        async function load() {
-            const data = await getAll();
-            setDenuncias(data);
-        }
-        load();
-        loadPredictiveData();
-    }, [getAll]);
-
-    async function loadPredictiveData() {
-        try {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setFullYear(endDate.getFullYear() - 1);
-
-            const response = await fetch(`/api/predictive?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`);
-
-            if (response.ok) {
-                const data = await response.json();
-                setPredictiveData(data);
-            }
-        } catch (error) {
-            console.error('Erro ao carregar dados preditivos:', error);
-        } finally {
-            setLoadingPredictive(false);
-        }
-    }
-
-    const parseAnalysis = (analysis: string) => {
-        const lines = analysis.split('\n').filter(line => line.trim());
-        return {
-            temporal: lines.find(line => line.includes('horário') || line.includes('tempo') || line.includes('período')) || 'Análise temporal em processamento...',
-            area: lines.find(line => line.includes('região') || line.includes('área') || line.includes('local')) || 'Identificando áreas de risco...',
-            efetividade: lines.find(line => line.includes('efetiv') || line.includes('reduz') || line.includes('melhora')) || 'Calculando efetividade das intervenções...',
-            recomendacao: lines.find(line => line.includes('recomend') || line.includes('suger') || line.includes('implementar')) || 'Gerando recomendações estratégicas...'
-        };
-    };
-
-    const getMetrics = (rowCount: number) => {
-        const precision = Math.min(95, 75 + (rowCount / 100) * 10);
-        const recall = Math.min(98, 80 + (rowCount / 150) * 12);
-        const f1Score = (2 * precision * recall) / (precision + recall) / 100;
-        const latency = Math.max(5, 25 - rowCount / 50);
-
-        return {
-            precision: Math.round(precision),
-            recall: Math.round(recall),
-            f1Score: f1Score.toFixed(2),
-            latency: Math.round(latency)
-        };
-    };
+        }))
 
     const routerEditDenuncia = (id: string) => {
         router.push(`/agente/denuncia/${id}/status`)
@@ -202,7 +236,9 @@ export default function AgentePage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Risco Alto/Crítico</p>
-                                    <p className="text-3xl font-bold text-red-600">{denuncias.filter(d => d.risco === 'critico').length}</p>
+                                    <p className="text-3xl font-bold text-red-600">
+                                        {denuncias.filter((d) => d.risco === "critico").length}
+                                    </p>
                                 </div>
                                 <AlertTriangle className="h-8 w-8 text-red-600" />
                             </div>
@@ -215,7 +251,9 @@ export default function AgentePage() {
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-medium text-gray-600">Precisão da IA</p>
-                                    <p className="text-3xl font-bold text-green-600">89%</p>
+                                    <p className="text-3xl font-bold text-green-600">
+                                        {predictiveData ? `${predictiveData.metrics.precision}%` : "89%"}
+                                    </p>
                                 </div>
                                 <Brain className="h-8 w-8 text-green-600" />
                             </div>
@@ -227,21 +265,29 @@ export default function AgentePage() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-sm font-medium text-gray-600">Tempo Resposta</p>
-                                    <p className="text-3xl font-bold text-blue-600">24h</p>
+                                    <p className="text-sm font-medium text-gray-600">Latência</p>
+                                    <p className="text-3xl font-bold text-blue-600">
+                                        {predictiveData ? `${predictiveData.metrics.latency}ms` : "24ms"}
+                                    </p>
                                 </div>
                                 <TrendingUp className="h-8 w-8 text-blue-600" />
                             </div>
-                            <p className="text-sm text-blue-600 mt-2">Média atual</p>
+                            <p className="text-sm text-blue-600 mt-2">Tempo de resposta</p>
                         </CardContent>
                     </Card>
                 </div>
 
                 <Tabs defaultValue="mapa" className="space-y-6">
                     <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger className="cursor-pointer" value="mapa">Mapa Preditivo</TabsTrigger>
-                        <TabsTrigger className="cursor-pointer" value="denuncias">Denúncias</TabsTrigger>
-                        <TabsTrigger className="cursor-pointer" value="analise">Análise IA</TabsTrigger>
+                        <TabsTrigger className="cursor-pointer" value="mapa">
+                            Mapa Preditivo
+                        </TabsTrigger>
+                        <TabsTrigger className="cursor-pointer" value="denuncias">
+                            Denúncias
+                        </TabsTrigger>
+                        <TabsTrigger className="cursor-pointer" value="analise">
+                            Análise IA
+                        </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="mapa" className="space-y-6">
@@ -254,8 +300,10 @@ export default function AgentePage() {
                                 <CardDescription>Visualização dos pontos críticos identificados pela IA preditiva</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Button className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">Vizualisar Mapa</Button>
-                                </CardContent>
+                                <Button className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">
+                                    Visualizar Mapa
+                                </Button>
+                            </CardContent>
                         </Card>
 
                         {/* Pontos Quentes */}
@@ -272,7 +320,7 @@ export default function AgentePage() {
                                                 <div className="text-2xl font-bold text-gray-400">#{index + 1}</div>
                                                 <div>
                                                     <h4 className="font-semibold">{ponto.nome}</h4>
-                                                    <p className="text-sm text-gray-600">{ponto.ocorrencias} ocorrências este mês</p>
+                                                    <p className="text-sm text-gray-600">{ponto.ocorrencias} ocorrências</p>
                                                 </div>
                                             </div>
                                             <Badge className={getRiscoColor(ponto.risco)}>
@@ -298,9 +346,7 @@ export default function AgentePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label htmlFor="filtro-risco">Nível de Risco</label>
-                                        <Select value={filtroRisco} onValueChange={(value: string) =>
-                                            setFiltroRisco(value as Severity)
-                                        }>
+                                        <Select value={filtroRisco} onValueChange={(value: string) => setFiltroRisco(value as Severity)}>
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -315,9 +361,10 @@ export default function AgentePage() {
                                     </div>
                                     <div>
                                         <label htmlFor="filtro-status">Status</label>
-                                        <Select value={filtroStatus} onValueChange={(value: string) =>
-                                            setFiltroStatus(value as StatusDenuncia)
-                                        }>
+                                        <Select
+                                            value={filtroStatus}
+                                            onValueChange={(value: string) => setFiltroStatus(value as StatusDenuncia)}
+                                        >
                                             <SelectTrigger>
                                                 <SelectValue />
                                             </SelectTrigger>
@@ -341,13 +388,12 @@ export default function AgentePage() {
                                         <div className="flex items-start justify-around">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-2">
-                                                    <Badge className={getRiscoColor(denuncia.risco ? denuncia.risco : '')}>
-                                                        {denuncia.risco ? (denuncia.risco.replace("-", " ").toUpperCase()) : '' }
+                                                    <Badge className={getRiscoColor(denuncia.risco ? denuncia.risco : "")}>
+                                                        {denuncia.risco ? denuncia.risco.replace("-", " ").toUpperCase() : ""}
                                                     </Badge>
                                                     <Badge variant="outline" className={getStatusColor(denuncia.status)}>
                                                         {denuncia.status.replace("-", " ").toUpperCase()}
                                                     </Badge>
-                                                    {/* ícone, visível só em <sm */}
                                                     <Button
                                                         onClick={() => routerEditDenuncia(denuncia._id)}
                                                         size="icon"
@@ -364,11 +410,10 @@ export default function AgentePage() {
                                                         <span>{denuncia.endereco}</span>
                                                     </div>
                                                     <span>•</span>
-                                                    <span>{denuncia.createdAt.toString()}</span>
+                                                    <span>{new Date(denuncia.createdAt).toLocaleDateString()}</span>
                                                 </div>
                                             </div>
                                             <div className="flex flex-col items-end space-y-2">
-                                                {/* botão texto, oculto em <sm */}
                                                 <Button
                                                     onClick={() => routerEditDenuncia(denuncia._id)}
                                                     size="sm"
@@ -385,15 +430,13 @@ export default function AgentePage() {
                         <div className="space-y-4 flex items-center justify-center text-center">
                             {!denunciasFiltradas.length && (
                                 <div className="space-y-4 flex flex-col items-center justify-center text-center">
-    <span className="text-red-600 text-4xl">
-      Não há denúncias desse tipo!
-    </span>
+                                    <span className="text-red-600 text-4xl">Não há denúncias desse tipo!</span>
                                     <Button
                                         className="cursor-pointer border-2 bg-transparent border-yellow-400 text-yellow-400 hover:bg-yellow-400 hover:text-white text-2xl"
                                         variant="outline"
                                         onClick={() => {
-                                            setFiltroRisco("todos");
-                                            setFiltroStatus("todos");
+                                            setFiltroRisco("todos")
+                                            setFiltroStatus("todos")
                                         }}
                                     >
                                         Limpar filtros
@@ -409,7 +452,6 @@ export default function AgentePage() {
                                 <CardTitle className="flex items-center space-x-2">
                                     <Brain className="h-5 w-5" />
                                     <span>Análise Preditiva da IA</span>
-                                    <Button className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">Vizualisar Mapa</Button>
                                 </CardTitle>
                                 <CardDescription>
                                     Insights e previsões baseadas em machine learning
@@ -426,17 +468,6 @@ export default function AgentePage() {
                                                     <Skeleton className="h-16 w-full" />
                                                 </div>
                                             ))}
-                                        </div>
-                                        <div className="border-t pt-6">
-                                            <Skeleton className="h-6 w-48 mb-4" />
-                                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                {[1, 2, 3, 4].map((i) => (
-                                                    <div key={i} className="text-center">
-                                                        <Skeleton className="h-8 w-16 mx-auto mb-2" />
-                                                        <Skeleton className="h-4 w-12 mx-auto" />
-                                                    </div>
-                                                ))}
-                                            </div>
                                         </div>
                                     </div>
                                 ) : predictiveData ? (
@@ -464,39 +495,139 @@ export default function AgentePage() {
                                             <h4 className="font-semibold mb-4">Métricas do Modelo</h4>
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                                 <div className="text-center">
-                                                    <div className="text-2xl font-bold text-green-600">
-                                                        {getMetrics(predictiveData.rowCount).precision}%
-                                                    </div>
+                                                    <div className="text-2xl font-bold text-green-600">{predictiveData.metrics.precision}%</div>
                                                     <div className="text-sm text-gray-600">Precisão</div>
                                                 </div>
                                                 <div className="text-center">
-                                                    <div className="text-2xl font-bold text-blue-600">
-                                                        {getMetrics(predictiveData.rowCount).recall}%
-                                                    </div>
+                                                    <div className="text-2xl font-bold text-blue-600">{predictiveData.metrics.recall}%</div>
                                                     <div className="text-sm text-gray-600">Recall</div>
                                                 </div>
                                                 <div className="text-center">
-                                                    <div className="text-2xl font-bold text-purple-600">
-                                                        {getMetrics(predictiveData.rowCount).f1Score}
-                                                    </div>
+                                                    <div className="text-2xl font-bold text-purple-600">{predictiveData.metrics.f1Score}</div>
                                                     <div className="text-sm text-gray-600">F1-Score</div>
                                                 </div>
                                                 <div className="text-center">
-                                                    <div className="text-2xl font-bold text-orange-600">
-                                                        {getMetrics(predictiveData.rowCount).latency}ms
-                                                    </div>
+                                                    <div className="text-2xl font-bold text-orange-600">{predictiveData.metrics.latency}ms</div>
                                                     <div className="text-sm text-gray-600">Latência</div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div className="border-t pt-6">
-                                            <h4 className="font-semibold mb-4">Análise Completa da IA</h4>
-                                            <div className="bg-gray-50 p-4 rounded-lg">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800">
-                  {JSON.stringify(predictiveData.analysis, null, 2)}
-                </pre>
-                                            </div>
+                                        {/* Gráficos */}
+                                        <div className="border-t pt-6 space-y-8">
+                                            <h4 className="font-semibold mb-4">Visualizações</h4>
+
+                                            {/* Gráfico de Pizza - Distribuição por Risco */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Distribuição por Nível de Risco</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div style={{ width: "100%", height: 300 }}>
+                                                        <ResponsiveContainer>
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={riskChartData}
+                                                                    dataKey="count"
+                                                                    nameKey="level"
+                                                                    cx="50%"
+                                                                    cy="50%"
+                                                                    outerRadius={100}
+                                                                    label={({ level, count }) => `${level}: ${count}`}
+                                                                >
+                                                                    {riskChartData.map((_, idx) => (
+                                                                        <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                                                                    ))}
+                                                                </Pie>
+                                                                <Tooltip />
+                                                                <Legend />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Gráfico de Barras - Top Regiões */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Ocorrências por Região</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div style={{ width: "100%", height: 300 }}>
+                                                        <ResponsiveContainer>
+                                                            <BarChart data={regionChartData}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Bar dataKey="count" fill="#3b82f6" />
+                                                            </BarChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Gráfico de Linha - Distribuição Horária */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Distribuição por Horário</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div style={{ width: "100%", height: 300 }}>
+                                                        <ResponsiveContainer>
+                                                            <LineChart data={hourlyChartData}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis
+                                                                    dataKey="hour"
+                                                                    label={{ value: "Hora do Dia", position: "insideBottom", offset: -5 }}
+                                                                />
+                                                                <YAxis label={{ value: "Ocorrências", angle: -90, position: "insideLeft" }} />
+                                                                <Tooltip
+                                                                    labelFormatter={(hour) => `${hour}:00`}
+                                                                    formatter={(value) => [value, "Ocorrências"]}
+                                                                />
+                                                                <Line
+                                                                    type="monotone"
+                                                                    dataKey="count"
+                                                                    stroke="#10b981"
+                                                                    strokeWidth={2}
+                                                                    dot={{ fill: "#10b981" }}
+                                                                />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+
+                                            {/* Gráfico de Pizza - Status */}
+                                            <Card>
+                                                <CardHeader>
+                                                    <CardTitle>Distribuição por Status</CardTitle>
+                                                </CardHeader>
+                                                <CardContent>
+                                                    <div style={{ width: "100%", height: 300 }}>
+                                                        <ResponsiveContainer>
+                                                            <PieChart>
+                                                                <Pie
+                                                                    data={statusChartData}
+                                                                    dataKey="count"
+                                                                    nameKey="status"
+                                                                    cx="50%"
+                                                                    cy="50%"
+                                                                    outerRadius={100}
+                                                                    label={({ status, count }) => `${status}: ${count}`}
+                                                                >
+                                                                    {statusChartData.map((_, idx) => (
+                                                                        <Cell key={idx} fill={PIE_COLORS[idx % PIE_COLORS.length]} />
+                                                                    ))}
+                                                                </Pie>
+                                                                <Tooltip />
+                                                                <Legend />
+                                                            </PieChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
                                         </div>
                                     </>
                                 ) : (
