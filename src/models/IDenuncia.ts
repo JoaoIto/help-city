@@ -40,12 +40,27 @@ export interface IDenuncia {
     // campos gerenciados pela API
     status: StatusDenuncia;
     risco?: Severity;
+    actions: IActionsDenuncia[];
 }
 
+export interface IActionsDenuncia {
+    id: string;
+    notes: string;
+    timestamp: Date | string;
+    performedBy: IPerformedBy;
+    description: string;
+}
 export interface IReporter {
     name?: string;
     contactPhone?: string;
     email?: string;
+    isAnonymous?: boolean;
+    contactInfo?: string;
+}
+
+export interface IPerformedBy {
+    name: string;
+    role: string;
 }
 
 export interface IAssignedAgent {
