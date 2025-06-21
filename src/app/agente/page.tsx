@@ -190,6 +190,14 @@ export default function AgentePage() {
         router.push(`/agente/denuncia/${id}/status`)
     }
 
+    function routerHelpCityMaps() {
+        // Se quiser abrir na mesma aba
+        // window.location.href = 'https://help-city-cpted-maps.vercel.app/'
+        //
+        // Ou, para abrir em nova aba:
+        window.open('https://help-city-cpted-maps.vercel.app/', '_blank')
+    }
+
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
@@ -300,7 +308,7 @@ export default function AgentePage() {
                                 <CardDescription>Visualização dos pontos críticos identificados pela IA preditiva</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <Button className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">
+                                <Button onClick={routerHelpCityMaps} className="cursor-pointer border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white text-2xl">
                                     Visualizar Mapa
                                 </Button>
                             </CardContent>
