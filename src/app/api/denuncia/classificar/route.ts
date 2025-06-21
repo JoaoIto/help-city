@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
     // 1) ler o body
-    let body: any;
+    let body: never;
     try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-expect-error
         body = await request.json();
     } catch {
         return NextResponse.json(
@@ -51,7 +53,7 @@ export async function POST(request: Request) {
         }
         const data = await hfRes.json();
         return NextResponse.json(data, { status: 200 });
-    } catch (e: any) {
+    } catch (e) {
         console.error("Inference error:", e);
         return NextResponse.json(
             { error: "Internal inference error" },
