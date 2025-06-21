@@ -56,8 +56,8 @@ export default function AgentePage() {
     }
 
     const denunciasFiltradas = denuncias.filter((d) => {
-        const okRisco = filtroRisco === "baixo" || d.risco === filtroRisco;
-        const okStatus = filtroStatus === "todos" || d.status === filtroStatus;
+        const okRisco  = filtroRisco === "todos" || d.risco  === filtroRisco;
+        const okStatus = filtroStatus === "todos"|| d.status === filtroStatus;
         return okRisco && okStatus;
     });
 
@@ -96,7 +96,7 @@ export default function AgentePage() {
         }));
 
     const routerEditDenuncia = (id: string) => {
-        router.push(`/agente/denuncia/${id}`)
+        router.push(`/agente/denuncia/${id}/status`)
     }
 
     return (
