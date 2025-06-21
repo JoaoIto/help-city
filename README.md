@@ -1,5 +1,7 @@
 # Help City - Plataforma de IA Preditiva para Segurança Pública
 
+![img.png](img.png)
+
 ## Descrição do Sistema
 
 **Help City** é uma plataforma web fullstack desenvolvida em Next.js (React) e Node.js, que utiliza modelos de IA pré-treinados para monitorar, classificar e prever desordens urbanas com foco em segurança pública. O sistema integra denúncias de cidadãos, análise de imagens e processamento de linguagem natural para gerar insights e alertas que ajudam o poder público a agir de forma proativa.
