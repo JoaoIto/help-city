@@ -11,6 +11,7 @@ import Link from "next/link"
 import {useDenuncias} from "@/hooks/useDenuncias";
 import {IDenuncia, Severity, StatusDenuncia} from "@/models/IDenuncia";
 import {useRouter} from "next/navigation";
+import { Eye } from "lucide-react"
 
 export default function AgentePage() {
     const router = useRouter()
@@ -281,7 +282,7 @@ export default function AgentePage() {
                             {denunciasFiltradas.map((denuncia) => (
                                 <Card key={denuncia._id}>
                                     <CardContent className="p-6">
-                                        <div className="flex items-start justify-between">
+                                        <div className="flex items-start justify-around">
                                             <div className="flex-1">
                                                 <div className="flex items-center space-x-2 mb-2">
                                                     <Badge className={getRiscoColor(denuncia.risco ? denuncia.risco : '')}>
@@ -290,6 +291,15 @@ export default function AgentePage() {
                                                     <Badge variant="outline" className={getStatusColor(denuncia.status)}>
                                                         {denuncia.status.replace("-", " ").toUpperCase()}
                                                     </Badge>
+                                                    {/* ícone, visível só em <sm */}
+                                                    <Button
+                                                        onClick={() => routerEditDenuncia(denuncia._id)}
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="inline-flex sm:hidden p-2"
+                                                    >
+                                                        <Eye className="h-5 w-5 text-blue-600 cursor-pointer" />
+                                                    </Button>
                                                 </div>
                                                 <h4 className="font-semibold mb-2">{denuncia.descricao}</h4>
                                                 <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -301,9 +311,16 @@ export default function AgentePage() {
                                                     <span>{denuncia.createdAt.toString()}</span>
                                                 </div>
                                             </div>
-                                            <Button className="cursor-pointer bg-blue-600 text-white" onClick={() => {routerEditDenuncia(denuncia._id)}} variant="outline" size="sm">
-                                                Ver Detalhes
-                                            </Button>
+                                            <div className="flex flex-col items-end space-y-2">
+                                                {/* botão texto, oculto em <sm */}
+                                                <Button
+                                                    onClick={() => routerEditDenuncia(denuncia._id)}
+                                                    size="sm"
+                                                    className="cursor-pointer hidden sm:inline-flex bg-blue-600 text-white"
+                                                >
+                                                    Detalhes
+                                                </Button>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>

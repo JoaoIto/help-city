@@ -16,11 +16,14 @@ import {
     Calendar,
     Clock,
     User,
+    Camera,
     AlertTriangle,
     Edit3,
     Save,
     Phone,
+    Mail,
     Shield,
+    Brain,
     FileText,
     Navigation,
     Loader2,
@@ -41,7 +44,7 @@ export default function DenunciaDetailsPage() {
     const [actionNotes, setActionNotes] = useState("")
     const [assignedAgent, setAssignedAgent] = useState("")
     const [isUpdating, setIsUpdating] = useState(false)
-    // const [selectedImage, setSelectedImage] = useState(0)
+    const [selectedImage, setSelectedImage] = useState(0)
 
     const denunciaId = params.id as string
 
@@ -77,8 +80,8 @@ export default function DenunciaDetailsPage() {
         { value: "resolvido", label: "Resolvido", color: "bg-green-500" },
     ]
 
-    const riskColors: Record<Severity, string> = {
-        todos: "bg-blue-200 text-blue-900",
+    const riskColors: Severity = {
+        todos: "bg-gray-200 text-gray-900",
         baixo: "bg-green-200 text-green-900",
         medio: "bg-yellow-200 text-yellow-900",
         alto: "bg-orange-200 text-orange-900",
@@ -130,9 +133,13 @@ export default function DenunciaDetailsPage() {
         }
     }
 
+    const handleDispatchUnit = () => {
+        if (!denuncia) return
+        alert(`Unidade despachada!`)
+    }
+
     const handleContactReporter = () => {
         if (!denuncia) return
-        // Implementar lógica de contato
         if (denuncia.reporterInfo?.contactPhone) {
             window.open(`tel:${denuncia.reporterInfo.contactPhone}`)
         } else {
@@ -142,7 +149,6 @@ export default function DenunciaDetailsPage() {
 
     const handleViewOnMap = () => {
         if (!denuncia) return
-        // Abrir no Google Maps
         const { latitude, longitude } = denuncia
         window.open(`https://maps.google.com/?q=${latitude},${longitude}`, "_blank")
     }
@@ -172,7 +178,7 @@ export default function DenunciaDetailsPage() {
                         <Alert>
                             <AlertDescription>{error}</AlertDescription>
                         </Alert>
-                        <Button onClick={() => router.back()} className="w-full">
+                        <Button onClick={() => router.back()} className="text-blue-600 w-full">
                             <ArrowLeft className="h-4 w-4 mr-2" />
                             Voltar
                         </Button>
@@ -189,7 +195,7 @@ export default function DenunciaDetailsPage() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                            <Button className="bg-transparent text-blue-600 cursor-pointer" variant="ghost" size="sm" onClick={() => router.back()}>
+                            <Button className="text-blue-600 cursor-pointer" variant="ghost" size="sm" onClick={() => router.back()}>
                                 <ArrowLeft className="h-4 w-4 mr-2" />
                                 Voltar
                             </Button>
@@ -258,19 +264,60 @@ export default function DenunciaDetailsPage() {
                                 </div>
 
                                 <div>
-                                    <Label className="text-sm font-medium text-gray-600">Localização</Label>
+                                    <Label className="text-sm font-medium text-gray-600">Localização <MapPin className="h-4 w-4 text-gray-500" /></Label>
                                     <div className="mt-1 space-y-2">
                                         <div className="flex items-center space-x-2">
-                                            <MapPin className="h-4 w-4 text-gray-500" />
-                                            <Label className="text-sm font-medium text-gray-600">Coordenadas: </Label>
-                                            <span>Latitude: {denuncia.latitude}</span>
-                                            <span>Longitude: {denuncia.longitude}</span>
+                                            Coordenadas: {denuncia.latitude}
+                                            {denuncia.longitude}
                                         </div>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
+                        {/* Histórico de Ações */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center space-x-2">
+                                    <Clock className="h-5 w-5" />
+                                    <span>Histórico de Ações</span>
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {denuncia.actions && denuncia.actions.length > 0 ? (
+                                        denuncia.actions
+                                            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+                                            .map((action, index) => (
+                                                <div key={action.id || index} className="border-l-2 border-blue-200 pl-3 pb-3">
+                                                    <div className="flex items-center justify-between">
+                                                        <span className="text-sm font-medium text-gray-900">{action.description}</span>
+                                                        <span className="text-xs text-gray-500">
+                              {new Date(action.timestamp).toLocaleString("pt-BR")}
+                            </span>
+                                                    </div>
+                                                    <div className="text-xs text-gray-600 mt-1">
+                                                        Por: {action.performedBy?.name || "Sistema"} ({action.performedBy?.role || "sistema"})
+                                                    </div>
+                                                    {action.notes && <div className="text-xs text-gray-500 mt-1 italic">{action.notes}</div>}
+                                                </div>
+                                            ))
+                                    ) : (
+                                        <div className="text-sm text-gray-500 text-center py-4">Nenhuma ação registrada ainda</div>
+                                    )}
 
+                                    {/* Ação de criação sempre presente */}
+                                    <div className="border-l-2 border-green-200 pl-3 pb-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-900">Denúncia criada</span>
+                                            <span className="text-xs text-gray-500">
+                        {new Date(denuncia.createdAt).toLocaleString("pt-BR")}
+                      </span>
+                                        </div>
+                                        <div className="text-xs text-gray-600 mt-1">Por: Cidadão (denunciante)</div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
                         {/* Imagens */}
                         {/*{denuncia.images && denuncia.images.length > 0 && (*/}
                         {/*    <Card>*/}
@@ -302,60 +349,6 @@ export default function DenunciaDetailsPage() {
                         {/*        </CardContent>*/}
                         {/*    </Card>*/}
                         {/*)}*/}
-
-                        {/* Análise da IA (se disponível) */}
-                        {/*{denuncia.aiAnalysis && (*/}
-                        {/*    <Card>*/}
-                        {/*        <CardHeader>*/}
-                        {/*            <CardTitle className="flex items-center space-x-2">*/}
-                        {/*                <Brain className="h-5 w-5 text-purple-600" />*/}
-                        {/*                <span>Análise Preditiva</span>*/}
-                        {/*            </CardTitle>*/}
-                        {/*        </CardHeader>*/}
-                        {/*        <CardContent className="space-y-4">*/}
-                        {/*            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">*/}
-                        {/*                <div className="text-center p-4 bg-blue-50 rounded-lg">*/}
-                        {/*                    <div className="text-2xl font-bold text-blue-600">{denuncia.aiAnalysis.riskScore || 0}</div>*/}
-                        {/*                    <div className="text-sm text-blue-800">Score de Risco</div>*/}
-                        {/*                </div>*/}
-                        {/*                <div className="text-center p-4 bg-green-50 rounded-lg">*/}
-                        {/*                    <div className="text-2xl font-bold text-green-600">*/}
-                        {/*                        {((denuncia.aiAnalysis.confidence || 0) * 100).toFixed(0)}%*/}
-                        {/*                    </div>*/}
-                        {/*                    <div className="text-sm text-green-800">Confiança</div>*/}
-                        {/*                </div>*/}
-                        {/*                <div className="text-center p-4 bg-purple-50 rounded-lg">*/}
-                        {/*                    <div className="text-2xl font-bold text-purple-600">*/}
-                        {/*                        {denuncia.aiAnalysis.processingTime || 0}ms*/}
-                        {/*                    </div>*/}
-                        {/*                    <div className="text-sm text-purple-800">Tempo Análise</div>*/}
-                        {/*                </div>*/}
-                        {/*            </div>*/}
-
-                        {/*            {denuncia.aiAnalysis.recommendations && denuncia.aiAnalysis.recommendations.length > 0 && (*/}
-                        {/*                <div>*/}
-                        {/*                    <h4 className="font-semibold mb-2">Recomendações da IA</h4>*/}
-                        {/*                    <div className="space-y-2">*/}
-                        {/*                        {denuncia.aiAnalysis.recommendations.map((rec, index) => (*/}
-                        {/*                            <Alert key={index}>*/}
-                        {/*                                <Brain className="h-4 w-4" />*/}
-                        {/*                                <AlertDescription>*/}
-                        {/*                                    <strong>{rec.action || rec}</strong>*/}
-                        {/*                                    {typeof rec === "object" && rec.description && (*/}
-                        {/*                                        <>*/}
-                        {/*                                            <br />*/}
-                        {/*                                            <span className="text-sm">{rec.description}</span>*/}
-                        {/*                                        </>*/}
-                        {/*                                    )}*/}
-                        {/*                                </AlertDescription>*/}
-                        {/*                            </Alert>*/}
-                        {/*                        ))}*/}
-                        {/*                    </div>*/}
-                        {/*                </div>*/}
-                        {/*            )}*/}
-                        {/*        </CardContent>*/}
-                        {/*    </Card>*/}
-                        {/*)}*/}
                     </div>
 
                     {/* Coluna Lateral */}
@@ -369,19 +362,19 @@ export default function DenunciaDetailsPage() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3">
-                                <Button className="cursor-pointer w-full text-white bg-red-600 hover:bg-red-700">
+                                <Button className="cursor-pointer w-full text-white bg-red-600 hover:bg-red-700" onClick={handleDispatchUnit}>
                                     <Navigation className="h-4 w-4 mr-2" />
                                     Despachar Unidade
                                 </Button>
-                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white" onClick={handleContactReporter}>
+                                <Button variant="outline" className="cursor-pointer w-full bg-transparent border-2 border-solid border-blue-600 hover:bg-blue-600 hover:text-white" onClick={handleContactReporter}>
                                     <Phone className="h-4 w-4 mr-2" />
                                     Contatar Denunciante
                                 </Button>
-                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white" onClick={handleViewOnMap}>
+                                <Button variant="outline" className="cursor-pointer w-full bg-transparent border-2 border-solid border-blue-600 hover:bg-blue-600 hover:text-white" onClick={handleViewOnMap}>
                                     <MapPin className="h-4 w-4 mr-2" />
                                     Ver no Mapa
                                 </Button>
-                                <Button variant="outline" className="cursor-pointer w-full bg-blue-600 text-white">
+                                <Button variant="outline" className="cursor-pointer w-full bg-transparent border-2 border-solid border-blue-600 hover:bg-blue-600 hover:text-white">
                                     <FileText className="h-4 w-4 mr-2" />
                                     Gerar Relatório
                                 </Button>
@@ -435,7 +428,7 @@ export default function DenunciaDetailsPage() {
                                     />
                                 </div>
 
-                                <Button className="w-full cursor-pointer bg-blue-600 text-white" onClick={handleSaveChanges} disabled={isUpdating}>
+                                <Button className="w-full cursor-pointer border-2 border-solid border-blue-600 text-white bg-blue-600 hover:bg-blue-800 " onClick={handleSaveChanges} disabled={isUpdating}>
                                     {isUpdating ? (
                                         <>
                                             <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -459,32 +452,32 @@ export default function DenunciaDetailsPage() {
                                     <span>Denunciante</span>
                                 </CardTitle>
                             </CardHeader>
-                            {/*<CardContent>*/}
-                            {/*    <div className="space-y-2">*/}
-                            {/*        <div className="flex items-center space-x-2">*/}
-                            {/*            <Badge variant={denuncia.reporterInfo?.isAnonymous ? "secondary" : "default"}>*/}
-                            {/*                {denuncia.reporterInfo?.isAnonymous ? "Anônimo" : "Identificado"}*/}
-                            {/*            </Badge>*/}
-                            {/*        </div>*/}
-                            {/*        {denuncia.reporterInfo?.contactInfo && (*/}
-                            {/*            <p className="text-sm text-gray-600">{denuncia.reporterInfo.contactInfo}</p>*/}
-                            {/*        )}*/}
-                            {/*        {!denuncia.reporterInfo?.isAnonymous && denuncia.reporterInfo?.contactPhone && (*/}
-                            {/*            <div className="flex space-x-2 mt-3">*/}
-                            {/*                <Button variant="outline" size="sm" onClick={handleContactReporter}>*/}
-                            {/*                    <Phone className="h-4 w-4 mr-1" />*/}
-                            {/*                    Ligar*/}
-                            {/*                </Button>*/}
-                            {/*                {denuncia.reporterInfo.contactEmail && (*/}
-                            {/*                    <Button variant="outline" size="sm">*/}
-                            {/*                        <Mail className="h-4 w-4 mr-1" />*/}
-                            {/*                        Email*/}
-                            {/*                    </Button>*/}
-                            {/*                )}*/}
-                            {/*            </div>*/}
-                            {/*        )}*/}
-                            {/*    </div>*/}
-                            {/*</CardContent>*/}
+                            <CardContent>
+                                <div className="space-y-2">
+                                    <div className="flex items-center space-x-2">
+                                        <Badge variant={denuncia.reporterInfo?.isAnonymous ? "secondary" : "default"}>
+                                            {denuncia.reporterInfo?.isAnonymous ? "Anônimo" : "Identificado"}
+                                        </Badge>
+                                    </div>
+                                    {denuncia.reporterInfo?.contactInfo && (
+                                        <p className="text-sm text-gray-600">{denuncia.reporterInfo.contactInfo}</p>
+                                    )}
+                                    {!denuncia.reporterInfo?.isAnonymous && denuncia.reporterInfo?.contactPhone && (
+                                        <div className="flex space-x-2 mt-3">
+                                            <Button variant="outline" size="sm" onClick={handleContactReporter}>
+                                                <Phone className="h-4 w-4 mr-1" />
+                                                Ligar
+                                            </Button>
+                                            {denuncia.reporterInfo.email && (
+                                                <Button variant="outline" size="sm">
+                                                    <Mail className="h-4 w-4 mr-1" />
+                                                    Email
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </CardContent>
                         </Card>
 
                         {/* Informações Técnicas */}
